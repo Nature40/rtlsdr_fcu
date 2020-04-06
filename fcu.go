@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,9 +17,9 @@ type FlowCtrlUnit struct {
 	timeout time.Duration
 	bufSize int
 
-	once    sync.Once
-	errChan chan error
-	synChan chan struct{}
+	once      sync.Once
+	lastNanos int64
+	errChan   chan error
 }
 
 // NewFlowCtrlUnit creates and starts a new FlowCtrlUnit.
@@ -30,8 +31,8 @@ func NewFlowCtrlUnit(src io.Reader, dst io.Writer, timeout time.Duration, bufSiz
 		timeout: timeout,
 		bufSize: bufSize,
 
-		errChan: make(chan error),
-		synChan: make(chan struct{}),
+		lastNanos: time.Now().UnixNano(),
+		errChan:   make(chan error),
 	}
 
 	go fcu.checkRead()
@@ -50,25 +51,19 @@ func (fcu *FlowCtrlUnit) checkRead() {
 			fcu.once.Do(func() { fcu.errChan <- err })
 			return
 		} else {
-			fcu.synChan <- struct{}{}
+			atomic.StoreInt64(&fcu.lastNanos, time.Now().UnixNano())
 		}
 	}
 }
 
 // checkTimeout controls the latest actions and might trigger a timeout.
 func (fcu *FlowCtrlUnit) checkTimeout() {
-	lastTime := time.Now()
+	for range time.Tick(fcu.timeout) {
+		lastTime := time.Unix(0, atomic.LoadInt64(&fcu.lastNanos))
 
-	for {
-		select {
-		case <-fcu.synChan:
-			lastTime = time.Now()
-
-		case <-time.Tick(fcu.timeout):
-			if time.Now().After(lastTime.Add(fcu.timeout)) {
-				fcu.once.Do(func() { fcu.errChan <- fmt.Errorf("timeout") })
-				return
-			}
+		if time.Now().UTC().After(lastTime.Add(fcu.timeout)) {
+			fcu.once.Do(func() { fcu.errChan <- fmt.Errorf("timeout") })
+			return
 		}
 	}
 }
