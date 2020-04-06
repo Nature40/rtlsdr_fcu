@@ -43,10 +43,9 @@ func NewFlowCtrlUnit(src io.Reader, dst io.Writer, timeout time.Duration, bufSiz
 // checkRead reads the piped Reader and notifies about data via synChan.
 func (fcu *FlowCtrlUnit) checkRead() {
 	tee := io.TeeReader(fcu.src, fcu.dst)
+	buf := make([]byte, fcu.bufSize)
 
 	for {
-		buf := make([]byte, fcu.bufSize)
-
 		if _, err := tee.Read(buf); err != nil {
 			fcu.once.Do(func() { fcu.errChan <- err })
 			return
