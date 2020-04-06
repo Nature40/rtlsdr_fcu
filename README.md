@@ -11,10 +11,11 @@ usage: fcu [<flags>] <timeout>
 Pipe stdin to stderr, but terminates if nothing has been sent for some time.
 
 Flags:
-  -h, --help     Show context-sensitive help (also try --help-long and --help-man).
-  -e, --cmd=CMD  command to be executed afterwards
-      --sh       execute the command within a "sh"
-  -v, --verbose  logging to stderr
+  -h, --help       Show context-sensitive help (also try --help-long and --help-man).
+  -v, --verbose    logging to stderr
+  -e, --cmd=CMD    command to be executed afterwards
+      --sh         execute the command within a "sh"
+  -b, --buf=65536  buffer size in bytes
 
 Args:
   <timeout>  duration until termination, e.g., 5s

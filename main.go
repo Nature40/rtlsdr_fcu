@@ -10,9 +10,10 @@ import (
 )
 
 var (
+	verbose = kingpin.Flag("verbose", "logging to stderr").Short('v').Bool()
 	cmd     = kingpin.Flag("cmd", "command to be executed afterwards").Short('e').String()
 	shWrap  = kingpin.Flag("sh", "execute the command within a \"sh\"").Bool()
-	verbose = kingpin.Flag("verbose", "logging to stderr").Short('v').Bool()
+	bufSize = kingpin.Flag("buf", "buffer size in bytes").Short('b').Default("65536").Int()
 	timeout = kingpin.Arg("timeout", "duration until termination, e.g., 5s").Required().Duration()
 )
 
@@ -23,7 +24,7 @@ func init() {
 }
 
 func main() {
-	fcu := NewFlowCtrlUnit(os.Stdin, os.Stdout, *timeout)
+	fcu := NewFlowCtrlUnit(os.Stdin, os.Stdout, *timeout, *bufSize)
 	fcuErr := fcu.Wait()
 
 	if *verbose {

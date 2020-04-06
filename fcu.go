@@ -14,6 +14,7 @@ type FlowCtrlUnit struct {
 	dst io.Writer
 
 	timeout time.Duration
+	bufSize int
 
 	once    sync.Once
 	errChan chan error
@@ -21,12 +22,13 @@ type FlowCtrlUnit struct {
 }
 
 // NewFlowCtrlUnit creates and starts a new FlowCtrlUnit.
-func NewFlowCtrlUnit(src io.Reader, dst io.Writer, timeout time.Duration) *FlowCtrlUnit {
+func NewFlowCtrlUnit(src io.Reader, dst io.Writer, timeout time.Duration, bufSize int) *FlowCtrlUnit {
 	fcu := &FlowCtrlUnit{
 		src: src,
 		dst: dst,
 
 		timeout: timeout,
+		bufSize: bufSize,
 
 		errChan: make(chan error),
 		synChan: make(chan struct{}),
@@ -43,7 +45,7 @@ func (fcu *FlowCtrlUnit) checkRead() {
 	tee := io.TeeReader(fcu.src, fcu.dst)
 
 	for {
-		buf := make([]byte, 128)
+		buf := make([]byte, fcu.bufSize)
 
 		if _, err := tee.Read(buf); err != nil {
 			fcu.once.Do(func() { fcu.errChan <- err })
